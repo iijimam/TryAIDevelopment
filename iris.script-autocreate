@@ -1,0 +1,24 @@
+set $namespace="%SYS"
+Do ##class(Security.Users).UnExpireUserPasswords("*")
+Do ##class(Config.NLS.Locales).Install("jpuw")
+
+// Embedded Python用にCallInサービスを有効化（現在の設定を取得）
+set st=##class(Security.Services).Get("%Service_CallIn",.pro)
+set pro("Enabled")=1
+// 修正登録
+set st=##class(Security.Services).Modify("%Service_CallIn",.pro)
+
+//OpenAIのEmbedding実行時 https通信が必要なのでssl/tls構成名を作成する
+set status=##class(Security.SSLConfigs).Create("webapi")
+
+set $namespace="USER"
+// インストールユーティリティクラスインポート
+do $System.OBJ.LoadDir("/opt/src/FS","ck",,1)
+// テーブル作成
+do ##class(FS.InstallUtils).loadsql("/opt/src/sample.sql")
+// データロード前にカレントプロセスだけジャーナルOff
+do DISABLE^%SYS.NOJRN
+// データロード
+do ##class(FS.InstallUtils).loadvectorjsonl("/opt/src/data/mhlw_hr_rules_chunk_embeddings.jsonl",1)
+// データロード後にカレントプロセスのジャーナルOn
+do ENABLE^%SYS.NOJRN
