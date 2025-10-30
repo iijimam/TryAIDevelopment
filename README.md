@@ -329,7 +329,7 @@ CREATE INDEX HNSWIndex ON TABLE FS.Document (TextVec)
      AS HNSW(Distance='DotProduct')
 ```
 
-後は、[mhlw_hr_rules_chunk_embeddings.jsonl](/data/mhlw_hr_rules_chunk_embeddings.jsonlmhlw_hr_rules_chunk_embeddings.jsonl) をテーブルにインポートするだけです。
+後は、[mhlw_hr_rules_chunk_embeddings.jsonl](/data/mhlw_hr_rules_chunk_embeddings.jsonl) をテーブルにインポートするだけです。
 
 予めIRISのクラス定義にインポート用メソッドを用意しています。（[FS.InstallUtils.cls](/src/FS/InstallUtils.cls)クラスのloadvectorjsonl() です。）
 
