@@ -347,60 +347,105 @@ IRIS はデータベース側でプログラミングができる特徴があり
 
 検索を行うためには、質問内容の文字列を Embedding する必要があります。
 
-Embedding のためのコードは、あらかじめ用意してあり、[utils.py](/src/utils.py) の getEmbed() 関数に記載しています。
+Embedding のためのコードは、あらかじめ用意してあり [utils.py](/src/utils.py) の getEmbed() 関数に記載しています。
 
-この Python コードを SQL 実行時に実行させたいので IRIS にストアドプロシージャ(**FS.GetTextVec()**)を用意しています。
-
-クラス「[FS.InstallUtil.cls](/src/FS/InstallUtils.cls)」の　GetTextVec()メソッド（ObjectScript を利用しています）。
-```
-/// OpenAIのEmbeddingを実行（/src/utils.pyをインポートして実行してます）
-ClassMethod GetTextVec(input As %String(MAXLEN=100000)) As %String [ SqlName = GetTextVec, SqlProc ]
-{
-    #dim %sqlcontext As %ProcedureContext
-    if $get(input)="" {
-        set %sqlcontext.%Message="テキストが指定されていません"
-        set %sqlcontext.%SQLCODE=-401
-        return ""
-    }
-
-    //utils.pyインポート
-    set sys=##class(%SYS.Python).Import("sys")
-    do sys.path.append("/src")
-    set utils=##class(%SYS.Python).Import("utils")
-    return utils.getEmbed(input)
-}
-```
-
-> メモ：メソッド内部に直接 Python を書いてもよいのですが、Python だけのコードは .py のスクリプトファイルにまとめておくと操作しやすいため、utils.py を用意しています。
-
-では、早速検索してみましょう！
+質問内容を getEmbed() の引数に指定し、ベクトルを入手した後、以下 SQL を実行し、類似する人事規定を入手できるかテストします。
 
 ```
-select TOP 5 VECTOR_DOT_PRODUCT(TextVec,TO_VECTOR(FS.GetTextVec(?),FLOAT,1536)) as sim ,Source,Title,Text
+select TOP 5 VECTOR_DOT_PRODUCT(?,FLOAT,1536) as sim ,Source,Title,Text
  FROM FS.Document ORDER BY sim DESC
 ```
-? に引数で入力した情報が渡ります。
+> メモ：SQL 文内の ? は引数入力の置き換え文字（プレースホルダ）です。
 
-引数例）
-- 育休をとろうと思うけど、申請の仕方や準備しないといけないものは何？
+それでは早速、Python シェルを起動します。本日は、IRIS にログインしたターミナルを Python シェルに切り替えて実験してみます。
 
-- 勤務中に階段で踏み外して足を骨折しました。治療費など会社に請求できますか？
+<span style="color: green">**？？ IRIS にログインしたターミナルを Python shell に切り替える？？**</span> 
 
-- 介護休暇を取得する場合の申請手順を教えてください。一般的な社内の報告順も教えてください。
+これはどういうことかと言いますと、
 
-- パワハラを受けている人がいることを人事に伝えようと思いますが密告者を保護する規則はありますか？
+IRIS は、データベースなのですが、サーバ側で Python を実行できます。この Python は、「Embedded Python または埋め込み Python」と呼ばれていて、IRIS サーバ内に Python のランタイムを組み込んでいるため、ネットワークコネクションを使用せずに IRIS にあるデータにアクセスできます。
 
+それでは早速試してみましょう！
 
-> 管理ポータル、SQL shell で上記 SELECT 文を実行すると入力パラメータ用画面、プロンプトが表示されます。
+IRIS にログインした後、Python shell に切り替えるには、`:p` を入力します。
 
+コンテナにログインした後の状態から IRIS にログインする方法は以下の通りです。
+```
+iris session iris
+```
+Python shell に切り替えます。
+```
+:p
+```
 
-💡解説：**VECTOR_DOT_PRODUCT(TextVec,TO_VECTOR(FS.GetTextVec(?),FLOAT,1536))** の意味
+ここまでの画面例は以下の通りです。
+```
+irisowner@6eb0d94d6ff1:/opt/src$ iris session iris
+
+ノード: 6eb0d94d6ff1 インスタンス: IRIS
+
+USER>:p
+
+Python 3.12.3 (main, Aug 14 2025, 17:47:21) [GCC 13.3.0] on linux
+Type quit() or Ctrl-D to exit this shell.
+>>> 
+```
+
+Embedding に必要な [utils.py](/src/utils.py) をインポートし、指定文字のベクトルを任意の変数に代入します。
+
+utils.py は /src 以下に配置しています。
+
+```
+import sys
+sys.path+=["/src]
+import utils
+```
+「育休をとろうと思うけど、申請の仕方や準備しないといけないものは何？」　のベクトルを作成します。
+
+```
+embedding=utils.getEmbed("育休をとろうと思うけど、申請の仕方や準備しないといけないものは何？")
+```
+
+続いて、SQL を実行します。Embedded Python 内で IRIS の操作をするには、`import iris` を行います。
+
+```
+import iris
+```
+実行する SQL 文を変数に設定します。
+
+> 引数には置き換え文字（プレースホルダー）の ? を指定できます。
+
+```
+sql="""
+    select TOP 5 VECTOR_DOT_PRODUCT(TextVec,TO_VECTOR(?,FLOAT,1536)) as sim ,Source,Title,Text
+    FROM FS.Document ORDER BY sim DESC
+    """
+```
+
+💡解説：**VECTOR_DOT_PRODUCT(TextVec,TO_VECTOR(?,FLOAT,1536))** の意味
 
 VECTOR_DOT_PRODUCT()関数は、ベクトルのドット積を求める関数です。
 
 > OpenAI の [Embeddings のドキュメント](https://platform.openai.com/docs/guides/embeddings)より、「Embeddingの長さは1に正規化されている」とあるので、ベクトルのドット積を求める関数を利用しています。
 
-類似した情報がヒットしたでしょうか？👀
+SQL を実行します。dataframe() 関数を使って結果を確認してみます。
+
+SQL の実行は、`iris.sql.exec(SQL文)`、または `statement=iris.sql.prepare(SQL文)` ＋ `statement.execute(引数)` で実行できます。
+
+引数があるので、`iris.sql.prepare()` で実行してみます。
+
+```
+statement=iris.sql.prepare(sql)
+result=statement.execute(embedding).dataframe()
+result
+```
+```
+for text in result["text"]:
+    print(text)
+```
+
+どうでしょうか。類似する文章が返ってきたでしょうか？👀
+
 
 ### 💡まとめ
 
@@ -470,6 +515,12 @@ engine = create_engine("iris://SuperUser:SYS@localhost:1972/USER")
 conn=engine.connect()
 ```
 
+後で実装するベクトル検索に必要な [utils.py](/src/utils.py) をインポートするため以下記載します。
+```
+import sys
+sys.path+=["/src"]
+import utils
+```
 
 #### (2) INSERT 文の組み立て
 この後実行する SQL文 は [Phase2-IRIS データベースの基礎体験](#phase2-iris-データベースの基礎体験) で実行した FS.MyLog への INSERT 文です。
@@ -495,6 +546,9 @@ formatted_dt = today.strftime('%Y-%m-%d %H:%M:%S')
 ```
 from sqlalchemy import create_engine,text
 import datetime
+import sys
+sys.path+=["/src"]
+import utils
 
 from sqlalchemy import create_engine,text
 engine = create_engine("iris://SuperUser:SYS@localhost:1972/USER")
@@ -559,7 +613,7 @@ with col3:
 実行に使う SQL は、[(4) ベクトル検索のテスト](#4-ベクトル検索のテスト) の流れで利用した以下 SELECT 文です。
 
 ```
-select TOP 5 VECTOR_DOT_PRODUCT(TextVec,TO_VECTOR(FS.GetTextVec(?),FLOAT,1536)) as sim ,Source,Title,Text
+select TOP 5 VECTOR_DOT_PRODUCT(TextVec,TO_VECTOR(?,FLOAT,1536)) as sim ,Source,Title,Text
  FROM FS.Document ORDER BY sim DESC
 ```
 
@@ -570,11 +624,12 @@ select TOP 5 VECTOR_DOT_PRODUCT(TextVec,TO_VECTOR(FS.GetTextVec(?),FLOAT,1536)) 
 例）
 ```
 def search(input):
+    embed=utils.getEmbed(input)
     sql=(
-     "select TOP 3 VECTOR_DOT_PRODUCT(TextVec,TO_VECTOR(FS.GetTextVec(:text),FLOAT,1536)) as sim ,Source,Title,Text"
+     "select TOP 3 VECTOR_DOT_PRODUCT(TextVec,TO_VECTOR(:embed,FLOAT,1536)) as sim ,Source,Title,Text"
      " FROM FS.Document ORDER BY sim DESC"
     )
-    rset = conn.execute(text(sql), {'text': input}).fetchall()
+    rset = conn.execute(text(sql), {'embed': embed}).fetchall()
     docref=[]
     for reco in rset:
         docref.append(

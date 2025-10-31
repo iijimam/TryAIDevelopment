@@ -1,6 +1,9 @@
 from sqlalchemy import create_engine,text
 import datetime
 import json
+import sys
+sys.path+=["/src"]
+import utils
 
 engine = None
 conn = None
@@ -45,12 +48,12 @@ def jsonFromDB():
 
 
 def search(input):
+    embed=utils.getEmbed(input)
     sql=(
-     "select TOP 3 VECTOR_DOT_PRODUCT(TextVec,TO_VECTOR(FS.GetTextVec(:text),FLOAT,1536)) as sim ,Source,Title,Text"
+     "select TOP 3 VECTOR_DOT_PRODUCT(TextVec,TO_VECTOR(:embed,FLOAT,1536)) as sim ,Source,Title,Text"
      " FROM FS.Document ORDER BY sim DESC"
     )
-    print(sql)
-    rset = conn.execute(text(sql), {'text': input}).fetchall()
+    rset = conn.execute(text(sql), {'embed': embed}).fetchall()
     docref=[]
     for reco in rset:
         #print(reco)

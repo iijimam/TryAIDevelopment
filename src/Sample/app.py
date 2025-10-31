@@ -173,7 +173,6 @@ with col1:
 with col2:
     if st.button("データベースから履歴読込"):
         retjson=tryiris.jsonFromDB()
-        print(retjson)
         if not retjson:
             st.warning("会話ログが見つかりませんでした。")
         else:
