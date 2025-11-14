@@ -357,7 +357,7 @@ IRIS はデータベース側でプログラミングができる特徴があり
 
 Embedding のためのコードは、あらかじめ用意してあり [utils.py](/src/utils.py) の getEmbed() 関数に記載しています。
 
-質問内容を getEmbed() の引数に指定し、ベクトルを入手した後、以下 SQL を実行し、類似する人事規定を入手できるかテストします。
+質問内容を getEmbed() の引数に指定し、ベクトルを入手した後、以下 SQL を実行し、類似する人事規定を入手できるかテストします（実際の実行は後ほど行います）。
 
 ```
 select TOP 5 VECTOR_DOT_PRODUCT(TextVec,TO_VECTOR(?,1536)) as sim ,Source,Title,Text
@@ -561,7 +561,7 @@ formatted_dt = today.strftime('%Y-%m-%d %H:%M:%S')
 
 後は会話履歴のJSONを渡せばログへの INSERT は完成です。
 
-この後もデータベースへに対する処理を追加したいので、任意のファイル名で Python のスクリプトファイルを作成し、ログ登録用の関数を作成し「[/src/Phase4](/src/Phase4/)」に配置します。
+この後もデータベースへに対する処理を追加したいので、**tryiris.py** のファイル名で Python のスクリプトファイルを作成し、ログ登録用の関数を作成し「[/src/Phase4](/src/Phase4/)」に配置します。
 
 コード例は以下の通りです。
 
