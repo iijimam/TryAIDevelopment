@@ -561,7 +561,7 @@ formatted_dt = today.strftime('%Y-%m-%d %H:%M:%S')
 
 後は会話履歴のJSONを渡せばログへの INSERT は完成です。
 
-この後もデータベースへに対する処理を追加したいので、**tryiris.py** のファイル名で Python のスクリプトファイルを作成し、ログ登録用の関数を作成し「[/src/Phase4](/src/Phase4/)」に配置します。
+この後もデータベースへに対する処理を追加したいので、**[Phase4/tryiris.py](/src/Phase4/tryiris.py)** にコードを追記します（現在ファイルの中身は空です）。
 
 コード例は以下の通りです。
 
