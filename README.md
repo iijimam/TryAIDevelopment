@@ -405,7 +405,7 @@ utils.py は /src 以下に配置しています。
 
 ```
 import sys
-sys.path+=["/src]
+sys.path+=["/src"]
 import utils
 ```
 「育休をとろうと思うけど、申請の仕方や準備しないといけないものは何？」　のベクトルを作成します。
