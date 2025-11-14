@@ -39,10 +39,12 @@ docker compose を使用して IRIS コンテナを立ち上げ、VSCode や管�
 
 早速、今日の流れが含まれるリポジトリを clone または、ダウンロードしましょう。
 
+> WSL 上に docker、docker compose、git をインストールしている場合は、WSL のターミナル上で `git clone` を行ってから以下の流れで VSCode を開くと操作が簡単です。
+
 ```
 git clone xxx
 ```
-Zipでダウンロードした方は、展開してください。
+> Zipでダウンロードした方は、展開してください。
 
 git clone または展開したディレクトリに移動し、以下実行すると VSCode が開き本日のワークスペースが開きます。
 ```
@@ -114,7 +116,7 @@ VSCode の「Terminal」メニューをクリックし、「New Terminal」を�
 ```
 docker exec -it tryaidevelop bash
 ```
-コンテナにログインできたら、次は IRIS にログインします。
+コンテナにログインできたら、次は IRIS にログインします（以降 IRIS にログインした端末を「**IRIS ターミナル**」と呼んでいきます）。
 
 ```
 iris session iris
@@ -178,7 +180,7 @@ irisowner@0809d9d83a12:/opt/src$
 
 ここまでの流れで、IRIS コンテナを開始し、VSCode の ObjectScript エクステンションを使用して、IRIS に接続を行いました。
 
-VSCode を使用して、管理ポータルの起動や、Terminal を利用して IRIS へのログイン、SQL shell の起動を確認しました。
+VSCode を使用して、管理ポータルの起動や、Terminal を利用して IRIS へのログイン（IRIS ターミナルにログイン）、SQL shell の起動を確認しました。
 
 管理ポータルやターミナルセッション、プログラミング言語から接続するときの接続先情報には、ネームスペースを指定するルールがありますので、ハンズオン環境では、**USER ネームスペース** を接続先情報として必ず指定してしましょう。
 
@@ -201,7 +203,7 @@ Content|VARCHAR(10000)|ログ記録時点の会話履歴全体
 
 では、早速テーブル定義を作成しましょう！
 
-DDL 文の実行は、管理ポータルのSQL画面からでも、IRIS ログイン後に開いた SQL Shell のどちらでもかまいません。
+DDL 文の実行は、管理ポータルのSQL画面からでも、IRIS ターミナルを SQL Shell に切り替えて実行でも、どちらでもかまいません。
 
 > SQL Shell は起動後、複数行の実行モードではありませんので、1度 Enter 入力すると便利です。実行命令には、go を入力してください。
 
@@ -310,7 +312,6 @@ JSON の中身は以下の通りです。
 "text" の中身の Embedding が "embedding" に設定されています。
 
 "embedding" はベクトルで、OpenAIの `text-embedding-3-small` の Embedding（ベクトル化）は、1536 次元なので、VECTOR 型を利用して、以下のようにテーブルを作成します。
-
 ```
 CREATE TABLE FS.Document (
     Source VARCHAR(100),
@@ -320,9 +321,14 @@ CREATE TABLE FS.Document (
     TextVec VECTOR(Float,1536)
 )
 ```
-管理ポータルや SQL shell から実行してください。
 
-ベクトル検索を高速に処理できるようにインデックスも追加します。
+テーブル定義をよく見ると、ベクトル用の VECTOR 型以外の通常の型（VARCHARやINTEGER）を使用する列も含まれています。
+
+例えば、ある値でフィルタリングした後、ベクトル検索で類似するものを取得したい、というような使い方に利用できます。
+
+それでは、管理ポータルの SQL 画面、または、IRISターミナルを SQL shell に切り替えて、上記 CREATE 文を実行してください。
+
+テーブル定義の作成が完了したら、ベクトル検索を高速に処理できるように、以下のインデックス文を実行します。
 
 ```
 CREATE INDEX HNSWIndex ON TABLE FS.Document (TextVec)
@@ -331,9 +337,11 @@ CREATE INDEX HNSWIndex ON TABLE FS.Document (TextVec)
 
 後は、[mhlw_hr_rules_chunk_embeddings.jsonl](/data/mhlw_hr_rules_chunk_embeddings.jsonl) をテーブルにインポートするだけです。
 
-予めIRISのクラス定義にインポート用メソッドを用意しています。（[FS.InstallUtils.cls](/src/FS/InstallUtils.cls)クラスのloadvectorjsonl() です。）
+予め IRIS のクラス定義にインポート用メソッドを用意しています。（[FS.InstallUtils.cls](/src/FS/InstallUtils.cls)クラスのloadvectorjsonl() です。）
 
-IRIS にログインした画面で以下実行します。
+メソッドの実行は、IRIS ターミナルで行います。
+
+`iris session iris` で IRIS ターミナルを起動し、以下実行します。
 ```
 do ##class(FS.InstallUtils).loadvectorjsonl("/data/mhlw_hr_rules_chunk_embeddings.jsonl",1)
 ```
@@ -369,7 +377,7 @@ IRIS は、データベースなのですが、サーバ側で Python を実行�
 
 IRIS にログインした後、Python shell に切り替えるには、`:p` を入力します。
 
-コンテナにログインした後の状態から IRIS にログインする方法は以下の通りです。
+コンテナにログインした後の状態から `iris session iris` で IRIS ターミナルを開きます。
 ```
 iris session iris
 ```
@@ -465,9 +473,7 @@ Embedding については、ハンズオンでは OpenAI モデルを利用し�
 
 ### その1：簡単 AI チャットボットを動かそう！
 
-[Phase4/app.py](/src/Phase4/app.py) を開いてください。
-
-以下のチャットボットのソースコードです。
+以下のチャットボットを作っていきます（ソースコードは後ほど開きます）。
 
 ![](/assets/1-AIchat.jpg)
 
@@ -489,11 +495,28 @@ http://localhost:9090
 
 どうでしょうか。ちゃんとチャットボットとして機能してますか？
 
-画面を消去するまで、会話の履歴を `st.session_state.messages_model` に追記していますので、「会話履歴を消去」のボタンを押すまでずっと記録され続けます。
+それでは、コードを開いて中身を確認します。
+
+コード：[Phase4/app.py](/src/Phase4/app.py)
+
+「会話履歴を消去」のボタンの動きは、56行目以降に記載しています。
+
+このボタンを押すまでは、会話の履歴を `st.session_state.messages_model` に追記し続けています。
+
+このボタンをクリックすると、初期のプロンプトが設定されます。
+
+```
+        st.session_state.messages_model = [
+            {
+                "role":"system",
+                "content":"あなたは親切なアシスタントです。"
+            }
+        ]
+```
 
 ### その2：会話履歴をデータベースの保存してみよう！
 
-未実装のボタン「データベースに履歴保存」に処理を追記してみます。
+コード：[Phase4/app.py](/src/Phase4/app.py) の72行目以降にある未実装のボタン「データベースに履歴保存」に処理を追記してみます。
 
 画面を消去するまで、会話の履歴は全て `st.session_state.messages_model` に保存しています。
 
@@ -569,7 +592,7 @@ def jsonToDB(input):
 
 #### (3) app.py に作成したスクリプトファイルをインポートして関数を実行する
 
-app.py に (2) の手順で追加した Python スクリプトファイルをインポートします。
+[Phase4/app.py](/src/Phase4/app.py)  に (2) の手順で追加した Python スクリプトファイルをインポートします。
 
 インポート後、作成した関数を「データベースに履歴保存」ボタンをクリックしたときに処理として追加し、データベースに保存できるかどうか確認します。
 
