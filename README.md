@@ -42,7 +42,7 @@ docker compose を使用して IRIS コンテナを立ち上げ、VSCode や管�
 > WSL 上に docker、docker compose、git をインストールしている場合は、WSL のターミナル上で `git clone` を行ってから以下の流れで VSCode を開くと操作が簡単です。
 
 ```
-git clone xxx
+git clone https://github.com/Intersystems-jp/TryAIDevelopment.git
 ```
 > Zipでダウンロードした方は、展開してください。
 
@@ -50,6 +50,10 @@ git clone または展開したディレクトリに移動し、以下実行す�
 ```
 code .
 ```
+
+> メモ：VSCode 上で README を以下の方法で開くと表示形式で参照できます。
+![](/assets/VSCode-README-Preview.jpg)
+
 ワークショップ直下に [.env](/.env) があるので開きます。
 
 現在
