@@ -644,7 +644,7 @@ select TOP 5 VECTOR_DOT_PRODUCT(TextVec,TO_VECTOR(?,FLOAT,1536)) as sim ,Source,
  FROM FS.Document ORDER BY sim DESC
 ```
 
-? の部分を :text に、TOP 5 を 3 に変更し、上記 SQL を実行する関数を用意します。
+? の部分を :embed に、TOP 5 を 3 に変更し、上記 SQL を実行する関数を用意します。
 
 入力引数は、チャットボットに入力された質問です。
 
