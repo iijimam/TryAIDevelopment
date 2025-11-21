@@ -364,7 +364,7 @@ Embedding のためのコードは、あらかじめ用意してあり [utils.py
 質問内容を getEmbed() の引数に指定し、ベクトルを入手した後、以下 SQL を実行し、類似する人事規定を入手できるかテストします（実際の実行は後ほど行います）。
 
 ```
-select TOP 5 VECTOR_DOT_PRODUCT(TextVec,TO_VECTOR(?,1536)) as sim ,Source,Title,Text
+select TOP 5 VECTOR_DOT_PRODUCT(TextVec,TO_VECTOR(?,FLOAT,1536)) as sim ,Source,Title,Text
  FROM FS.Document ORDER BY sim DESC
 ```
 > メモ：SQL 文内の ? は引数入力の置き換え文字（プレースホルダ）です。
